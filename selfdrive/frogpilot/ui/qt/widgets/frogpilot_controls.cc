@@ -1,35 +1,64 @@
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonParseError>
+
 #include "selfdrive/ui/ui.h"
 
-Params paramsMemory{"/dev/shm/params"};
-
-std::atomic<int> callCounter(0);
 void updateFrogPilotToggles() {
-  int currentCall = ++callCounter;
+  static Params paramsMemory{"/dev/shm/params"};
+  static std::atomic<bool> isUpdating(false);
+  static std::thread resetThread;
 
-  std::thread([currentCall]() {
-    paramsMemory.putBool("FrogPilotTogglesUpdated", true);
+  bool expected = false;
+  if (!isUpdating.compare_exchange_strong(expected, true)) {
+    return;
+  }
+
+  if (resetThread.joinable()) {
+    resetThread.join();
+  }
+
+  paramsMemory.putBool("FrogPilotTogglesUpdated", true);
+
+  resetThread = std::thread([&]() {
     util::sleep_for(1000);
+    paramsMemory.putBool("FrogPilotTogglesUpdated", false);
 
-    if (currentCall == callCounter.load()) {
-      paramsMemory.putBool("FrogPilotTogglesUpdated", false);
-    }
-  }).detach();
+    isUpdating.store(false);
+  });
 }
 
-QColor loadThemeColors(const QString &colorKey) {
-  QFile file("../frogpilot/assets/active_theme/colors/colors.json");
-  if (!file.open(QIODevice::ReadOnly)) return QColor();
+QColor loadThemeColors(const QString &colorKey, bool clearCache) {
+  static QJsonObject cachedColorData;
 
-  QJsonParseError parseError;
-  QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &parseError);
-  if (parseError.error != QJsonParseError::NoError || !doc.isObject()) return QColor();
+  if (clearCache) {
+    cachedColorData = QJsonObject();
+    return QColor();
+  }
 
-  QJsonObject colorObj = doc.object().value(colorKey).toObject();
+  if (cachedColorData.isEmpty()) {
+    QFile file("../frogpilot/assets/active_theme/colors/colors.json");
+    if (file.exists() && file.open(QIODevice::ReadOnly)) {
+      QJsonParseError parseError;
+      QByteArray fileData = file.readAll();
+      QJsonDocument doc = QJsonDocument::fromJson(fileData, &parseError);
+
+      if (parseError.error == QJsonParseError::NoError && doc.isObject()) {
+        cachedColorData = doc.object();
+      }
+    }
+  }
+
+  if (!cachedColorData.contains(colorKey)) {
+    return QColor();
+  }
+
+  QJsonObject colorObj = cachedColorData.value(colorKey).toObject();
   return QColor(
-    colorObj["red"].toInt(),
-    colorObj["green"].toInt(),
-    colorObj["blue"].toInt(),
-    colorObj["alpha"].toInt()
+    colorObj.value("red").toInt(0),
+    colorObj.value("green").toInt(0),
+    colorObj.value("blue").toInt(0),
+    colorObj.value("alpha").toInt(255)
   );
 }
 

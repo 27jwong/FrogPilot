@@ -62,7 +62,7 @@ class CarInterface(CarInterfaceBase):
       if p.get_bool("ManualTransmission"):
         ret.flags |= MazdaFlags.MANUAL_TRANSMISSION.value
 
-    ret.steerLimitTimer = 0.8
+    ret.steerLimitTimer = 1
 
     CarInterfaceBase.configure_torque_tune(candidate, ret.lateralTuning)
 

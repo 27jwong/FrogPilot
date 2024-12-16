@@ -113,7 +113,7 @@ class CarController(CarControllerBase):
         else:
           # we want to use the stock value in this case but we need a smooth transition.
           self.acc_filter.update_alpha(abs(CS.acc["ACCEL_CMD"]-self.filtered_acc_last)/1000)
-          filtered_acc_output = int(self.acc_filter.update(CS.acc["ACCEL_CMD"]))
+          filtered_acc_output = CC.actuators.accel
 
         acc_output = filtered_acc_output
         self.filtered_acc_last = filtered_acc_output

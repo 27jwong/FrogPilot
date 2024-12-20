@@ -106,22 +106,22 @@ class CarController(CarControllerBase):
 
     else:
       raw_acc_output = (CC.actuators.accel * 240) + 2000
+      OPlong = (self.params.get_bool("ExperimentalLongitudinalEnabled") and CC.longActive)
+      
       if self.params.get_bool("BlendedACC"):
         if self.params_memory.get_int("CEStatus"):
           self.acc_filter.update_alpha(abs(raw_acc_output-self.filtered_acc_last)/1000)
           filtered_acc_output = int(self.acc_filter.update(raw_acc_output))
+          if OPlong:
+            CS.acc["ACCEL_CMD"] = filtered_acc_output
         else:
           # we want to use the stock value in this case but we need a smooth transition.
           self.acc_filter.update_alpha(abs(CS.acc["ACCEL_CMD"]-self.filtered_acc_last)/1000)
-          filtered_acc_output = raw_acc_output
+          filtered_acc_output = CS.acc["ACCEL_CMD"]
 
-        acc_output = filtered_acc_output
         self.filtered_acc_last = filtered_acc_output
-      else:
-        acc_output = raw_acc_output
-
-      if self.params.get_bool("ExperimentalLongitudinalEnabled") and CC.longActive:
-        CS.acc["ACCEL_CMD"] = acc_output
+      elif OPlong:
+        CS.acc["ACCEL_CMD"] = raw_acc_output
 
       resume = False
       hold = False

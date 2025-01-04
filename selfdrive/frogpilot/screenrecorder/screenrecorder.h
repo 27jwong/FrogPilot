@@ -56,4 +56,5 @@ private:
   std::unique_ptr<uint8_t[]> rgbScaleBuffer;
 
   std::thread encodingThread;
+#endif //NO_SR
 };

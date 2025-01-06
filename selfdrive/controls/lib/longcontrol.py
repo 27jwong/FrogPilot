@@ -115,7 +115,7 @@ class LongControl:
 
     self.long_control_state = long_control_state_trans(self.CP, active, self.long_control_state, CS.vEgo,
                                                        should_stop, CS.brakePressed,
-                                                       CS.cruiseState.standstill)
+                                                       CS.cruiseState.standstill, frogpilot_toggles)
     if self.params.get_bool("BlendedACC"):
       experimental_mode = self.params_memory.get_int("CEStatus") # 0 means expereimental mode is off
       if experimental_mode and not self.experimental_mode_last:
